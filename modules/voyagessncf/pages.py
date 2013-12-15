@@ -37,7 +37,7 @@ class CitiesPage(BasePage):
        return result['CITIES']
 
 class SearchPage(BasePage):
-    def search(self, departure, arrival, date, age, card):
+    def search(self, departure, arrival, date, age, card, comfort_class):
         self.browser.select_form(name='saisie')
         self.browser['ORIGIN_CITY'] = departure.encode(self.browser.ENCODING)
         self.browser['DESTINATION_CITY'] = arrival.encode(self.browser.ENCODING)
@@ -51,6 +51,7 @@ class SearchPage(BasePage):
         self.browser['OUTWARD_TIME'] = [str(date.hour)]
         self.browser['PASSENGER_1'] = [age]
         self.browser['PASSENGER_1_CARD'] = [card]
+        self.browser['COMFORT_CLASS'] = [str(comfort_class)]
         self.browser.controls.append(ClientForm.TextControl('text', 'nbAnimalsForTravel', {'value': ''}))
         self.browser['nbAnimalsForTravel'] = '0'
         self.browser.submit()
@@ -88,14 +89,16 @@ class ResultsPage(BasePage):
 
     def iter_results(self):
         for div in self.document.getroot().cssselect('div.train_info'):
+            info = None
             price = None
             currency = None
             for td in div.cssselect('td.price'):
                 txt = self.parser.tocleanstring(td)
                 p = Decimal(re.sub('([^\d\.]+)', '', txt))
-                currency = Currency.get_currency(txt)
                 if price is None or p < price:
+                    info = list(div.cssselect('strong.price_label')[0].itertext())[-1].strip().strip(':')
                     price = p
+                    currency = Currency.get_currency(txt)
 
             yield {'type': self.get_value(div, 'div.transporteur-txt'),
                    'time': self.parse_hour(div, 'div.departure div.hour'),
@@ -104,4 +107,5 @@ class ResultsPage(BasePage):
                    'arrival_time': self.parse_hour(div, 'div.arrival div.hour', last=True),
                    'price': price,
                    'currency': currency,
+                   'price_info': info,
                   }

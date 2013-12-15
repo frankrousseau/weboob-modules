@@ -65,7 +65,10 @@ class VoyagesSNCFBackend(BaseBackend, ICapTravel):
                                                       ('MIFAM', u'Carte Famille Militaire'),
                                                       ('THBIZ', u'Thalys ThePass Business'),
                                                       ('THPREM', u'Thalys ThePass Premium'),
-                                                      ('THWE', u'Thalys ThePass Weekend')))))
+                                                      ('THWE', u'Thalys ThePass Weekend')))),
+                           Value('class', label='Comfort class', default='2',
+                                 choices=OrderedDict((('1', u'1e classe'),
+                                                      ('2', u'2e classe')))))
 
     BROWSER = VoyagesSNCFBrowser
     STATIONS = []
@@ -79,8 +82,16 @@ class VoyagesSNCFBackend(BaseBackend, ICapTravel):
         self._populate_stations()
 
         pattern = pattern.lower()
+        already = set()
+
+        # First stations whose name starts with pattern...
         for _id, name in enumerate(self.STATIONS):
             if name.lower().startswith(pattern):
+                already.add(_id)
+                yield Station(_id, unicode(name))
+        # ...then ones whose name contains pattern.
+        for _id, name in enumerate(self.STATIONS):
+            if pattern in name.lower() and not _id in already:
                 yield Station(_id, unicode(name))
 
     def iter_station_departures(self, station_id, arrival_id=None, date=None):
@@ -98,11 +109,13 @@ class VoyagesSNCFBackend(BaseBackend, ICapTravel):
         with self.browser:
             for i, d in enumerate(self.browser.iter_departures(station, arrival, date,
                                                                self.config['age'].get(),
-                                                               self.config['card'].get())):
+                                                               self.config['card'].get(),
+                                                               self.config['class'].get())):
                 departure = Departure(i, d['type'], d['time'])
                 departure.departure_station = d['departure']
                 departure.arrival_station = d['arrival']
                 departure.arrival_time = d['arrival_time']
                 departure.price = d['price']
                 departure.currency = d['currency']
+                departure.information = d['price_info']
                 yield departure
