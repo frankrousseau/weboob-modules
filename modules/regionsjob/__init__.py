@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 
-# Copyright(C) 2013      Romain Bignon
+# Copyright(C) 2014      Bezleputh
 #
 # This file is part of weboob.
 #
@@ -18,24 +18,7 @@
 # along with weboob. If not, see <http://www.gnu.org/licenses/>.
 
 
-from weboob.capabilities.parcel import ICapParcel
-from weboob.tools.backend import BaseBackend
-
-from .browser import UpsBrowser
+from .backend import RegionsjobBackend
 
 
-__all__ = ['UpsBackend']
-
-
-class UpsBackend(BaseBackend, ICapParcel):
-    NAME = 'ups'
-    DESCRIPTION = u'UPS website'
-    MAINTAINER = u'Romain Bignon'
-    EMAIL = 'romain@weboob.org'
-    VERSION = '0.i'
-
-    BROWSER = UpsBrowser
-
-    def get_parcel_tracking(self, id):
-        with self.browser:
-            return self.browser.get_tracking_info(id)
+__all__ = ['RegionsjobBackend']
