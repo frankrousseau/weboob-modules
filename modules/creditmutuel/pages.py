@@ -98,7 +98,6 @@ class AccountsPage(LoggedPage, HTMLPage):
 
             obj_id = Env('id')
             obj_label = Label(CleanText('./td[1]/a'))
-            obj_balance = CleanDecimal('./td[2] | ./td[3]')
             obj_coming = Env('coming')
             obj_balance = Env('balance')
             obj_currency = FrenchTransaction.Currency('./td[2] | ./td[3]')
@@ -131,7 +130,7 @@ class AccountsPage(LoggedPage, HTMLPage):
                 self.env['id'] = id
 
                 # Handle real balances
-                page = self.page.browser.open(link)
+                page = self.page.browser.open(link).page
                 coming = page.find_amount(u"Opérations à venir")
                 accounting = page.find_amount(u"Solde comptable")
 
@@ -243,7 +242,7 @@ class CardPage(OperationsPage, LoggedPage):
                 def __iter__(self):
                     card_link = self.el.get('href')
                     history_url = '%s/%s/fr/banque/%s' % (self.page.browser.BASEURL, self.page.browser.currentSubBank, card_link)
-                    page = self.page.browser.location(history_url)
+                    page = self.page.browser.location(history_url).page
 
                     for op in page.get_history():
                         yield op
