@@ -18,7 +18,7 @@
 # along with weboob. If not, see <http://www.gnu.org/licenses/>.
 
 from weboob.tools.browser2.page import HTMLPage, method, ListElement, ItemElement
-from weboob.tools.browser2.filters import CleanText, Env
+from weboob.tools.browser2.filters import CleanText, Env, Regexp, Field
 from weboob.capabilities.gauge import GaugeMeasure, GaugeSensor
 from weboob.capabilities.base import NotAvailable
 
@@ -35,19 +35,10 @@ class StartPage(HTMLPage):
         class item(ItemElement):
             klass = GaugeSensor
 
-            obj_name = Env('name')
-            obj_id = Env('id')
-            obj_unit = Env('unit')
-            obj_lastvalue = Env('lastvalue')
+            obj_name = Regexp(CleanText('.'), '(.*?) {0,}: .*', "\\1")
+            obj_id = CleanText(Regexp(Field('name'), '(.*)', "dd-\\1"), " .():")
             obj_gaugeid = u"wetter"
             obj_forecast = NotAvailable
-
-
-            def get_name(self, text):
-                if u"Niederschlag" not in text:
-                    return text.split(':')[0].strip()
-                else:
-                    return text.split()[0]
 
             def split_unit(self, text):
                 if u"Temperatur" in text:
@@ -55,20 +46,17 @@ class StartPage(HTMLPage):
                     unit = u'°C'
                 else:
                     value = text.split(':')[-1].split()[0]
-                    unit = text.split(':')[-1].split()[1]
-                return value, unit
+                    unit = text.split(':')[-1].split(None, 1)[1]
+                return [value, unit]
+
+            def obj_lastvalue(self):
+                lastvalue = GaugeMeasure()
+                lastvalue.level = float(Env('parse')(self)[0])
+                lastvalue.alarm = NotAvailable
+                return lastvalue
+
+            def obj_unit(self):
+                return Env('parse')(self)[1]
 
             def parse(self, el):
-                text = CleanText(el)(self)
-
-                name = self.get_name(text)
-                _id = u"dd-%s" % name
-
-                self.env['name'] = name
-                self.env['id'] = _id
-
-                level, self.env['unit'] = self.split_unit(text)
-                lastvalue = GaugeMeasure()
-                lastvalue.level = float(level)
-                lastvalue.alarm = NotAvailable
-                self.env['lastvalue'] = lastvalue
+                self.env['parse'] = self.split_unit(CleanText(el)(self))
