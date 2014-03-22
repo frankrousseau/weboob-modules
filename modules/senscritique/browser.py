@@ -88,6 +88,7 @@ class SenscritiqueBrowser(PagesBrowser):
         self.open(url, data=params)
 
     def list_events(self, date_from, date_to=None, package=None, channels=None):
+        self._setup_session(Firefox())
         self.program_page.stay_or_go()
         page_nb = 1
 
@@ -129,7 +130,7 @@ class SenscritiqueBrowser(PagesBrowser):
             if not isinstance(event, SensCritiquenCalendarEvent):
                 event = event.next()
 
-            event.resume = self.get_resume(_id)
+            event._resume = self.get_resume(_id)
 
             self._setup_session(Firefox())
             event = self.event_page.go(_id=_id).get_event(obj=event)
@@ -138,17 +139,6 @@ class SenscritiqueBrowser(PagesBrowser):
 
     def get_resume(self, _id):
         self._setup_session(SensCritiqueJsonProfile())
-        re_id = re.compile('^/?(.*)/.*', re.DOTALL)
+        re_id = re.compile('^/?.*/(.*)', re.DOTALL)
         a_id = re_id.search(_id).group(1)
-
         return self.json_page.go(_id=a_id).get_resume()
-        # return "get resume"
-        """
-        self.HEADER_RESUME['Referer'] = url
-        req = urllib2.Request('http://www.senscritique.com/sc/products/storyline/%s.json' % _id,
-                              headers=self.HEADER_RESUME)
-        response = self.open(req)
-        result = simplejson.loads(response.read(), self.ENCODING)
-        if result['json']['success']:
-            return result['json']['data']
-        """

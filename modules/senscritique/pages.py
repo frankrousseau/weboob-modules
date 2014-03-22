@@ -20,10 +20,10 @@
 from weboob.tools.misc import html2text
 from .calendar import SensCritiquenCalendarEvent
 
-from datetime import date, datetime, time
+from datetime import date, datetime, time, timedelta
 
 from weboob.tools.browser2.page import HTMLPage, method, ItemElement, ListElement, JsonPage
-from weboob.tools.browser2.filters import Filter, Link, CleanText, Regexp
+from weboob.tools.browser2.filters import Filter, Link, CleanText, Regexp, Attr
 
 
 __all__ = ['AjaxPage', 'EventPage', 'JsonResumePage']
@@ -79,7 +79,7 @@ class AjaxPage(HTMLPage):
                     if not self.env['date_to']:
                         return True
                     else:
-                        if obj.end_date < self.env['date_to']:
+                        if obj.end_date <= self.env['date_to']:
                             return True
 
                 if '_id' in self.env:
@@ -103,6 +103,9 @@ class AjaxPage(HTMLPage):
 
                         _date = date(day=day_number, month=month, year=year)
 
+                    elif spans_date[0].attrib['data-sc-day'] == 'Demain':
+                        _date += timedelta(days=1)
+
                     str_time = el[0].xpath("time")[0].attrib['datetime'][:-6]
                     _time = datetime.strptime(str_time, '%H:%M:%S')
 
@@ -114,12 +117,12 @@ class AjaxPage(HTMLPage):
 
             class Summary(Filter):
                 def filter(self, el):
-                    title = el[0].xpath("div/img")[0].attrib['alt'].replace('Affiche ', '')
-                    channel_info = el[0].xpath("div/div[@class='elgr-data-channel']")
+                    title = Regexp(Attr('div/img', 'alt'), '^Affiche(.*)')(el[0])
+                    channel_info = el[0].xpath('div/div[@class="elgr-data-channel"]')
                     if channel_info:
-                        channel = channel_info[0].text.strip()
+                        channel = CleanText('.')(channel_info[0])
                     else:
-                        channel_info = el[0].xpath('div[@class="elgr-product-data"]/span')[0].attrib['class']
+                        channel_info = Attr('div[@class="elgr-product-data"]/span', 'class')(el[0])
                         channel = self.page.CHANNELS_PARAM.get(channel_info)
                     return u'%s - %s' % (title, channel)
 
@@ -133,8 +136,8 @@ class Description(Filter):
     def filter(self, el):
         header = el[0].xpath("//div[@class='pvi-hero-product']")[0]
 
-        title = header.xpath("div[@class='d-rubric-inner']/h1")[0].text.strip()
-        year = header.xpath("div[@class='d-rubric-inner']/small")[0].text.strip()
+        title = CleanText("div[@class='d-rubric-inner']/h1")(header)
+        year = CleanText("div[@class='d-rubric-inner']/small")(header)
 
         _infos = header.xpath("ul[@class='pvi-product-specs']/li")
         infos = ''
@@ -169,7 +172,7 @@ class EventPage(HTMLPage):
             event.url = self.page.url
             resume = Resume('//section[@class="pvi-productDetails"]')(self)
             if not resume:
-                resume = self.obj.resume
+                resume = self.obj._resume
             description = Description('.')(self)
             event.description = u'%s%s' % (description, resume)
             return event
