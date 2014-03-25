@@ -19,9 +19,8 @@
 
 from weboob.tools.browser import BrowserBanned
 from weboob.tools.browser2.page import HTMLPage, LoggedPage, method, ListElement, ItemElement
-from weboob.tools.browser2.filters import Env, CleanText, CleanDecimal, Field, Attr, Time, Date, Link, Format
+from weboob.tools.browser2.filters import CleanText, CleanDecimal, Field, Attr, DateTime, Link, Format
 from weboob.capabilities.bill import Subscription, Detail
-from datetime import datetime
 
 
 __all__ = ['LoginPage', 'HomePage', 'HistoryPage', 'BillsPage', 'ErrorPage']
@@ -69,30 +68,19 @@ class HistoryPage(LoggedPage, HTMLPage):
     class get_calls(ListElement):
         item_xpath = '//table/tbody/tr'
 
-        def next_page(self):
-            link_path = "//div[@class='date-navigator center']/span/a"
-            text = CleanText(link_path)(self.page.doc)
-            if "Previous" in text:
-                link = Link(link_path)(self.page.doc)
-                return link
-            return
+        next_page = Link("//div[@class='date-navigator center']/span/a[contains(text(), 'Previous')]",
+                         default=None)
 
         class item(ItemElement):
             klass = Detail
 
             obj_id = None
-            obj_datetime = Env('datetime')
+            obj_datetime = DateTime(CleanText('td[1] | td[2]'))
             obj_price = CleanDecimal('td[7]', replace_dots=False, default=0)
             obj_currency = u'EUR'
             obj_label = Format(u"%s from %s to %s - %s",
                                CleanText('td[3]'), CleanText('td[4]'),
                                CleanText('td[5]'), CleanText('td[6]'))
-
-            def parse(self, el):
-                mydate = Date(CleanText('td[1]'))(el)
-                mytime = Time(CleanText('td[2]'))(el)
-
-                self.env['datetime'] = datetime.combine(mydate, mytime)
 
 
 #TODO
