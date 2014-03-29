@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 
-# Copyright(C) 2010-2013 Romain Bignon, Florent Fourcot
+# Copyright(C) 2010-2014 Romain Bignon, Florent Fourcot
 #
 # This file is part of weboob.
 #
@@ -26,7 +26,7 @@ from weboob.capabilities.base import UserError
 from weboob.tools.backend import BaseBackend, BackendConfig
 from weboob.tools.value import ValueBackendPassword
 
-from .browser import Ing
+from .browser import IngBrowser
 
 __all__ = ['INGBackend']
 
@@ -49,7 +49,7 @@ class INGBackend(BaseBackend, ICapBank, ICapBill):
                                                 regexp='^(\d{8}|)$',
                                                 masked=False)
                           )
-    BROWSER = Ing
+    BROWSER = IngBrowser
 
     def create_default_browser(self):
         return self.create_browser(self.config['login'].get(),
@@ -69,43 +69,37 @@ class INGBackend(BaseBackend, ICapBank, ICapBill):
             yield account
 
     def get_account(self, _id):
-        with self.browser:
-            account = self.browser.get_account(_id)
+        account = self.browser.get_account(_id)
         if account:
             return account
         else:
             raise AccountNotFound()
 
     def iter_history(self, account):
-        with self.browser:
-            for history in self.browser.get_history(account.id):
-                yield history
+        for history in self.browser.get_history(account.id):
+            yield history
 
     def iter_transfer_recipients(self, account):
-        with self.browser:
-            if not isinstance(account, Account):
-                account = self.get_account(account)
-            for recipient in self.browser.get_recipients(account):
-                yield recipient
+        if not isinstance(account, Account):
+            account = self.get_account(account)
+        for recipient in self.browser.get_recipients(account):
+            yield recipient
 
     def transfer(self, account, recipient, amount, reason):
-        with self.browser:
-            if not reason:
-                raise UserError('Reason is mandatory to do a transfer on ING website')
-            if not isinstance(account, Account):
-                account = self.get_account(account)
-            if not isinstance(recipient, Recipient):
-                # Remove weboob identifier prefix (LA-, CC-...)
-                if "-" in recipient:
-                    recipient = recipient.split('-')[1]
-            return self.browser.transfer(account, recipient, amount, reason)
+        if not reason:
+            raise UserError('Reason is mandatory to do a transfer on ING website')
+        if not isinstance(account, Account):
+            account = self.get_account(account)
+        if not isinstance(recipient, Recipient):
+            # Remove weboob identifier prefix (LA-, CC-...)
+            if "-" in recipient:
+                recipient = recipient.split('-')[1]
+        return self.browser.transfer(account, recipient, amount, reason)
 
     def iter_investment(self, account):
-        with self.browser:
-            if not isinstance(account, Account):
-                account = self.get_account(account)
-            for investment in self.browser.get_investments(account):
-                yield investment
+        if not isinstance(account, Account):
+            account = self.get_account(account)
+        return self.browser.get_investments(account)
 
     def iter_subscription(self):
         for subscription in self.browser.get_subscriptions():
