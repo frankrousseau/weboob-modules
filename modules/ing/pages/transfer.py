@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 
-# Copyright(C) 2009-2011  Romain Bignon, Florent Fourcot
+# Copyright(C) 2009-2014  Romain Bignon, Florent Fourcot
 #
 # This file is part of weboob.
 #
@@ -17,15 +17,10 @@
 # You should have received a copy of the GNU Affero General Public License
 # along with weboob. If not, see <http://www.gnu.org/licenses/>.
 
-from decimal import Decimal
-
-from weboob.tools.capabilities.bank.transactions import FrenchTransaction
-from weboob.tools.captcha.virtkeyboard import VirtKeyboardError
 from weboob.capabilities.bank import Recipient, AccountNotFound, Transfer
-from weboob.tools.browser2.page import HTMLPage, LoggedPage
-from weboob.tools.browser import BrokenPageError
+from weboob.tools.browser2.page import HTMLPage, LoggedPage, ListElement, ItemElement, method
+from weboob.tools.browser2.filters import CleanText, CleanDecimal
 from .login import INGVirtKeyboard
-from logging import error
 
 __all__ = ['TransferPage']
 
@@ -58,20 +53,15 @@ class TransferPage(LoggedPage, HTMLPage):
                 recipient._type = "ext"
                 yield recipient
 
-    def ischecked(self, account):
-        id = account.id
+    def ischecked(self, _id):
         # remove prefix (CC-, LA-, ...)
-        if "-" in id:
-            id = id.split('-')[1]
-        option = self.doc.xpath('//input[@value="%s"]' % id)
-        if len(option) == 0:
-            raise AccountNotFound()
-        else:
-            option = option[0]
+        if "-" in _id:
+            _id = _id.split('-')[1]
         try:
-            return option.attrib["checked"] == "checked"
+            option = self.doc.xpath('//input[@value="%s"]' % _id)[0]
         except:
-            return False
+            raise AccountNotFound()
+        return option.attrib.get("checked") == "checked"
 
     def transfer(self, recipient, amount, reason):
         form = self.get_form(name="transfer_form")
@@ -135,61 +125,27 @@ class TransferPage(LoggedPage, HTMLPage):
 
 
 class TransferConfirmPage(HTMLPage):
-    def on_loaded(self):
-        pass
-
     def confirm(self, password):
-        try:
-            vk = INGVirtKeyboard(self)
-        except VirtKeyboardError as err:
-            error("Error: %s" % err)
-            return
-        realpasswd = ""
-        span = self.doc.find('//span[@id="digitpadtransfer"]')
-        i = 0
-        for font in span.getiterator('font'):
-            if font.attrib.get('class') == "vide":
-                realpasswd += password[i]
-            i += 1
-        confirmform = None
-        divform = self.doc.xpath('//div[@id="transfer_panel"]')[0]
-        for form in divform.xpath('./form'):
-            try:
-                if form.attrib['name'][0:4] == "j_id":
-                    confirmform = form
-                    break
-            except:
-                continue
-        if confirmform is None:
-            raise BrokenPageError('Unable to find confirm form')
-        formname = confirmform.attrib['name']
-        self.browser.logger.debug('We are looking for : ' + realpasswd)
+        vk = INGVirtKeyboard(self)
 
-        form = self.get_form(name=formname)
+        form = self.get_form(xpath='//div[@id="transfer_panel"]//form')
         for elem in form:
             if "_link_hidden_" in elem or "j_idcl" in elem:
                 form.pop(elem)
 
-        coordinates = vk.get_string_code(realpasswd)
-        self.browser.logger.debug("Coordonates: " + coordinates)
-
         form['AJAXREQUEST'] = '_viewRoot'
-        form['%s:mrgtransfer' % formname] = '%s:mrgtransfer' % formname
-        form['%s:mrltransfer' % formname] = coordinates
+        form['%s:mrgtransfer' % form.name] = '%s:mrgtransfer' % form.name
+        form['%s:mrltransfer' % form.name] = vk.get_coordinates('//span[@id="digitpadtransfer"]', password)
         form.submit()
 
-    def recap(self):
-        if len(self.doc.xpath('//p[@class="alert alert-success"]')) == 0:
-            raise BrokenPageError('Unable to find confirmation')
-        div = self.doc.find(
-                '//div[@class="encadre transfert-validation"]')
-        transfer = Transfer(0)
-        transfer.amount = Decimal(FrenchTransaction.clean_amount(
-            div.xpath('.//label[@id="confirmtransferAmount"]')[0].text))
-        transfer.origin = div.xpath(
-                './/span[@id="confirmfromAccount"]')[0].text
-        transfer.recipient = div.xpath(
-                './/span[@id="confirmtoAccount"]')[0].text
-        transfer.reason = unicode(
-                div.xpath('.//span[@id="confirmtransferMotive"]')[0].text)
-        return transfer
+    @method
+    class recap(ListElement):
+        item_xpath = '//div[@class="encadre transfert-validation"]'
+
+        class item(ItemElement):
+            klass = Transfer
+
+            obj_amount = CleanDecimal('.//label[@id="confirmtransferAmount"]')
+            obj_origin = CleanText('.//span[@id="confirmfromAccount"]')
+            obj_recipient = CleanText('.//span[@id="confirmtoAccount"]')
+            obj_reason = CleanText('.//span[@id="confirmtransferMotive"]')

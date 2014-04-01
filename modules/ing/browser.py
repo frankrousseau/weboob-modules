@@ -17,16 +17,13 @@
 # You should have received a copy of the GNU Affero General Public License
 # along with weboob. If not, see <http://www.gnu.org/licenses/>.
 import hashlib
-import urllib
 
 from weboob.tools.browser2 import LoginBrowser, URL, need_login
-from weboob.tools.browser import BrowserIncorrectPassword
+from weboob.tools.browser import BrowserIncorrectPassword, BrokenPageError
 from weboob.capabilities.bank import Account, TransferError
 
-from .pages import AccountsList, LoginPage, \
-                   TransferPage, TransferConfirmPage, \
-                   BillsPage, StopPage, TitrePage, \
-                   TitreHistory
+from .pages import AccountsList, LoginPage, TitrePage, TitreHistory,\
+    TransferPage, TransferConfirmPage, BillsPage, StopPage
 
 
 __all__ = ['IngBrowser']
@@ -52,7 +49,6 @@ class IngBrowser(LoginBrowser):
     titrehistory = URL('https://bourse.ingdirect.fr/priv/compte.php\?ong=3', TitreHistory)
     titrerealtime = URL('https://bourse.ingdirect.fr/streaming/compteTempsReelCK.php', TitrePage)
 
-
     # CapBill
     billpage = URL('/protected/pages/common/estatement/eStatement.jsf', BillsPage)
 
@@ -75,6 +71,8 @@ class IngBrowser(LoginBrowser):
         self.page.login(self.password)
         if self.page.error():
             raise BrowserIncorrectPassword()
+        if self.errorpage.is_here():
+            raise BrowserIncorrectPassword('Please login on website to fill the form and retry')
 
     @need_login
     def get_accounts_list(self):
@@ -122,7 +120,7 @@ class IngBrowser(LoginBrowser):
             self.logger.info('There is no history for this account')
             return
 
-        index = 0 # index, we get always the same page, but with more informations
+        index = 0  # index, we get always the same page, but with more informations
         hashlist = []
         while True:
             i = index
@@ -149,7 +147,7 @@ class IngBrowser(LoginBrowser):
     @need_login
     def get_recipients(self, account):
         self.transferpage.stay_or_go()
-        if self.page.ischecked(account):
+        if self.page.ischecked(account.id):
             return self.page.get_recipients()
         else:
             # It is hard to check the box and to get the real list.
@@ -177,6 +175,9 @@ class IngBrowser(LoginBrowser):
             else:
                 self.page.confirm(self.password)
                 self.valtransferpage.go()
+                recap = self.page.recap()
+                if len(list(recap)) == 0:
+                    raise BrokenPageError('Unable to find confirmation')
                 return self.page.recap()
         else:
             raise TransferError('Recipient not found')
@@ -199,7 +200,6 @@ class IngBrowser(LoginBrowser):
         self.where = "titre"
         self.titrepage.go()
 
-
     def get_investments(self, account):
         if account.type != Account.TYPE_MARKET:
             raise NotImplementedError()
@@ -213,30 +213,23 @@ class IngBrowser(LoginBrowser):
         self.titrehistory.go()
         return self.page.iter_history()
 
-
     ############# CapBill #############
+    @need_login
     def get_subscriptions(self):
-        self.location('/protected/pages/common/estatement/eStatement.jsf')
-        return self.page.iter_account()
+        return self.billpage.go().iter_account()
 
+    @need_login
     def get_bills(self, subscription):
-        if not self.is_on_page(BillsPage):
-            self.location(self.billpage)
+        self.billpage.go()
         data = {"AJAXREQUEST": "_viewRoot",
                 "accountsel_form": "accountsel_form",
                 subscription._formid: subscription._formid,
                 "autoScroll": "",
                 "javax.faces.ViewState": subscription._javax,
                 "transfer_issuer_radio": subscription.id
-               }
-        self.location(self.billpage, urllib.urlencode(data))
-        while True:
-            for bill in self.page.iter_bills(subscription.id):
-                yield bill
-            if self.page.islast():
-                return
-
-            self.page.next_page()
+                }
+        self.billpage.go(data=data)
+        return self.pagination(lambda: self.page.iter_bills(subid=subscription.id))
 
     def predownload(self, bill):
         self.page.postpredown(bill._localid)
