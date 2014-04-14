@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 
-# Copyright(C) 2013 Bezleputh
+# Copyright(C) 2014 Vicnet
 #
 # This file is part of weboob.
 #
@@ -17,18 +17,19 @@
 # You should have received a copy of the GNU Affero General Public License
 # along with weboob. If not, see <http://www.gnu.org/licenses/>.
 
-from weboob.capabilities.job import BaseJobAdvert
+
+from weboob.tools.test import BackendTest
+
+__all__ = ['LaCentraleTest']
 
 
-class IndeedJobAdvert(BaseJobAdvert):
+class LaCentraleTest(BackendTest):
+    BACKEND = 'lacentrale'
 
-    @classmethod
-    def id2url(cls, _id):
-        dico_car_part = {" ": "-",
-                         "/": "-",
-                         }
-        for cle, valeur in dico_car_part.items():
-            _id = _id.replace(cle, valeur)
+    def test_lacentrale(self):
+        products = list(self.backend.search_products('1000€,pro'))
+        self.assertTrue(len(products) > 0)
 
-        splitted_id = _id.split('|')
-        return 'http://www.indeed.fr/cmp/%s/jobs/%s-%s' % (splitted_id[0], splitted_id[1], splitted_id[2])
+        product = products[0]
+        prices = list(self.backend.iter_prices(product))
+        self.assertTrue(len(prices) > 0)
