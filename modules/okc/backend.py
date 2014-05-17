@@ -25,15 +25,15 @@ from html2text import unescape
 from dateutil import tz
 from dateutil.parser import parse as _parse_dt
 
-from weboob.capabilities.base import NotLoaded
 from weboob.capabilities.messages import ICapMessages, ICapMessagesPost, Message, Thread
-#from weboob.capabilities.dating import ICapDating, OptimizationNotFound, Event
-from weboob.capabilities.contact import ICapContact, ContactPhoto, Contact
+from weboob.capabilities.dating import ICapDating, OptimizationNotFound, Event
+from weboob.capabilities.contact import ICapContact, ContactPhoto, Contact, Query, QueryError
 from weboob.tools.backend import BaseBackend, BackendConfig
 from weboob.tools.value import Value, ValueBackendPassword
 from weboob.tools.misc import local2utc
 
 from .browser import OkCBrowser
+from .optim.profiles_walker import ProfilesWalker
 
 
 __all__ = ['OkCBackend']
@@ -64,7 +64,7 @@ def parse_dt(s):
     return local2utc(d)
 
 
-class OkCBackend(BaseBackend, ICapMessages, ICapContact, ICapMessagesPost):
+class OkCBackend(BaseBackend, ICapMessages, ICapContact, ICapMessagesPost, ICapDating):
     NAME = 'okc'
     MAINTAINER = u'Roger Philibert'
     EMAIL = 'roger.philibert@gmail.com'
@@ -73,7 +73,8 @@ class OkCBackend(BaseBackend, ICapMessages, ICapContact, ICapMessagesPost):
     DESCRIPTION = u'OkCupid dating website'
     CONFIG = BackendConfig(Value('username',                label='Username'),
                            ValueBackendPassword('password', label='Password'))
-    STORAGE = {
+    STORAGE = {'profiles_walker': {'viewed': []},
+            'queries_queue': {'queue': []},
                'sluts': {},
                #'notes': {},
               }
@@ -81,6 +82,31 @@ class OkCBackend(BaseBackend, ICapMessages, ICapContact, ICapMessagesPost):
 
     def create_default_browser(self):
         return self.create_browser(self.config['username'].get(), self.config['password'].get())
+
+    # ---- ICapDating methods ---------------------
+    def init_optimizations(self):
+        self.add_optimization('PROFILE_WALKER', ProfilesWalker(self.weboob.scheduler, self.storage, self.browser))
+
+    def iter_events(self):
+        all_events = {}
+        with self.browser:
+            all_events[u'visits'] =  (self.browser.get_visits, 'Visited by %s')
+        for type, (events, message) in all_events.iteritems():
+            for event in events():
+                e = Event(event['who']['id'])
+
+                e.date = parse_dt(event['date'])
+                e.type = type
+                # if 'who' in event:
+                #     e.contact = self._get_partial_contact(event['who'])
+                # else:
+                #     e.contact = self._get_partial_contact(event)
+
+                # if not e.contact:
+                #     continue
+
+                # e.message = message % e.contact.name
+                yield e
 
     # ---- ICapMessages methods ---------------------
 
@@ -113,12 +139,17 @@ class OkCBackend(BaseBackend, ICapMessages, ICapContact, ICapMessagesPost):
             thread = id
             id = thread.id
 
+        if not thread and isinstance(id, basestring) and not id.isdigit():
+            for t in self.browser.get_threads_list():
+                if t['username'] == id:
+                    id = t['id']
+                    break
+            else:
+                return None
+
         if not thread:
             thread = Thread(int(id))
             thread.flags = Thread.IS_DISCUSSION
-            full = False
-        else:
-            full = True
 
         with self.browser:
             mails = self.browser.get_thread_mails(id, 100)
@@ -165,13 +196,8 @@ class OkCBackend(BaseBackend, ICapMessages, ICapContact, ICapMessagesPost):
 
             child = msg
 
-        if full and msg:
-            # If we have get all the messages, replace NotLoaded with None as
-            # parent.
+        if msg:
             msg.parent = None
-        if not full and not msg:
-            # Perhaps there are hidden messages
-            msg = NotLoaded
 
         thread.root = msg
 
@@ -230,7 +256,7 @@ class OkCBackend(BaseBackend, ICapMessages, ICapContact, ICapMessagesPost):
             # Check wether we already have a thread with this user
             threads = self.browser.get_threads_list()
             for thread in threads:
-                if thread['username'] == message.thread.id:
+                if thread['id'] == message.thread.id:
                     self.browser.post_reply(thread['id'], content)
                     break
             else:
@@ -326,30 +352,30 @@ class OkCBackend(BaseBackend, ICapMessages, ICapContact, ICapMessagesPost):
             threads = self.browser.get_threads_list(count=100)
 
         for thread in threads:
-            c = self._get_partial_contact(thread['member'])
+            c = self.get_contact(thread['username'])
             if c and (c.status & status) and (not ids or c.id in ids):
                 yield c
 
-    #def send_query(self, id):
-    #    if isinstance(id, Contact):
-    #        id = id.id
+    def send_query(self, id):
+       if isinstance(id, Contact):
+           id = id.id
 
-    #    queries_queue = None
-    #    try:
-    #        queries_queue = self.get_optimization('QUERIES_QUEUE')
-    #    except OptimizationNotFound:
-    #        pass
+       queries_queue = None
+       try:
+           queries_queue = self.get_optimization('QUERIES_QUEUE')
+       except OptimizationNotFound:
+           pass
 
-    #    if queries_queue and queries_queue.is_running():
-    #        if queries_queue.enqueue_query(id):
-    #            return Query(id, 'A charm has been sent')
-    #        else:
-    #            return Query(id, 'Unable to send charm: it has been enqueued')
-    #    else:
-    #        with self.browser:
-    #            if not self.browser.send_charm(id):
-    #                raise QueryError('No enough charms available')
-    #            return Query(id, 'A charm has been sent')
+       if queries_queue and queries_queue.is_running():
+           if queries_queue.enqueue_query(id):
+               return Query(id, 'A profile was visited')
+           else:
+               return Query(id, 'Unable to visit profile: it has been enqueued')
+       else:
+           with self.browser:
+               if not self.browser.visit_profile(id):
+                   raise QueryError('Could not visit profile')
+               return Query(id, 'Profile was visited')
 
     #def get_notes(self, id):
     #    if isinstance(id, Contact):

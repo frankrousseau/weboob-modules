@@ -41,7 +41,7 @@ class ThreadPage(BasePage):
             _class = elem.get('class', '')
             if 'clearfix' in _class.split():
                 threads.append({
-                        u'username' : unicode(elem.getchildren()[0].get('href').split('/')[-1]),
+                        u'username' : unicode(elem.getchildren()[0].get('href').split('/')[-1].split('?')[0]),
                         u'id' : unicode(elem.get('id', '').split('_')[1]),
                 })
 
@@ -57,11 +57,13 @@ class MessagesPage(BasePage):
             'messages' : [],
         }
 
-        for li_msg in ul_item.getchildren():
+        mails['member']['pseudo'] = self.document.xpath('//li[starts-with(@id, "usr_")]')[0].attrib['id'].split('_', 1)[-1]
+
+        for li_msg in reversed(ul_item.getchildren()):
             div = li_msg.getchildren()[1]
             txt = self.parser.tostring(div.getchildren()[1])
             date = div.getchildren()[2].text
-            id_from = li_msg.getchildren()[0].get('href').split('/')[-1]
+            id_from = li_msg.getchildren()[0].get('href').split('/')[-1].split('?')[0]
 
             if date is not None:
                 date = unicode(date)
@@ -100,6 +102,21 @@ class MessagesPage(BasePage):
 
 
 class ProfilePage(BasePage):
+    def get_visit_button_params(self):
+        links = self.parser.select(self.document.getroot(), "//a", method='xpath')
+        for a in links:
+            # Premium users can browse anonymusly, need to click on a button to let the other person her profile was visited
+            onclick = a.get("onclick")
+
+            if onclick is None:
+                continue
+            for line in onclick.splitlines():
+                match = re.match("^Profile\.action\({stalk:(\d*),u:'(\w*)',tuid:'(\d+)'}", line)
+                if match is not None:
+                    return match.groups()
+        # Default case : no premium, profile already visited
+        return None, None, None
+
     def get_profile(self):
         title = self.parser.select(self.document.getroot(), 'title', 1)
         if title.text == 'OkCupid: Account Not Found':
@@ -171,6 +188,73 @@ class PhotosPage(BasePage):
 class PostMessagePage(BasePage):
     def post_mail(self, id, content):
         self.browser.select_form(name='f2')
-        self.browser['r1'] = id
-        self.browser['body'] = content
+        self.browser['r1'] = id.encode('utf-8')
+        self.browser['body'] = content.encode('utf-8')
         self.browser.submit()
+
+class VisitsPage(BasePage):
+    def get_visits(self):
+        ul_item = self.parser.select(self.document.getroot(), '//*[@id="page_content"]/ul[3]', method='xpath')[0]
+        visitors = []
+        for li in ul_item:
+            visitor_id = unicode(li.get('id')[4:])
+            visitor_timestamp = unicode(self.parser.select(li, './/div/span', method='xpath')[0].text.strip())
+            visitors.append({
+                'who': {
+                    'id': visitor_id
+                },
+                'date': visitor_timestamp
+            })
+        return visitors
+
+class QuickMatchPage(BasePage):
+    def get_id(self):
+        element = self.parser.select(self.document.getroot(), '//*[@id="sn"]', method='xpath')[0]
+        visitor_id = unicode(element.get('value'))
+        return visitor_id
+
+    def get_rating_params(self):
+        # initialization
+        userid = None
+        tuid = None
+
+        # looking for CURRENTUSERID
+        js = self.parser.select(self.document.getroot(), "//script", method='xpath')
+        for script in js:
+            script = script.text
+
+            if script is None:
+                continue
+            for line in script.splitlines():
+                match = re.match('.*var\s*CURRENTUSERID\s*=\s*"(\d+)"', line)
+                if match is not None:
+                    (userid,) = match.groups()
+
+        # Looking for target userid (tuid)
+        element = self.parser.select(self.document.getroot(), '//*[@id="star_5_top"]', method='xpath')[0]
+        onclick = element.get("onclick")
+
+        if onclick is None:
+            pass
+        for line in onclick.splitlines():
+            match = re.match("^Quickmatch\.vote\(\d,\s*'(\w*)'*", line)
+            if match is not None:
+                (tuid,) = match.groups()
+
+        # Building params hash
+        if userid and tuid:
+            params = {
+                'voterid': userid,
+                'target_userid': tuid,
+                'target_objectid': 0,
+                'type': 'vote',
+                'vote_type': 'personality',
+                'score': 5,
+            }
+            return '/vote_handler', 1,params
+        else:
+            raise Exception('Unexpected reply page')
+
+
+        # VoteHandler.process('vote', 'personality', stars, tuid, pass.succeed, pass.failure);
+        # var params = {voterid: CURRENTUSERID,target_userid: tuid,target_objectid: 0,type: vote_or_note,vote_type: vote_type,score: rating}
