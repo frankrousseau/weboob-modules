@@ -53,11 +53,15 @@ class BiplanBackend(BaseBackend, ICapCalendarEvent):
                                                                   query.city,
                                                                   query.categories)
 
-            return itertools.chain(concert_events, theatre_events)
+            items = list(itertools.chain(concert_events, theatre_events))
+            items.sort(key=lambda o:o.start_date)
+            return items
 
     def list_events(self, date_from, date_to=None):
-        return itertools.chain(self.browser.list_events_concert(date_from, date_to),
-                               self.browser.list_events_theatre(date_from, date_to))
+        items = list(itertools.chain(self.browser.list_events_concert(date_from, date_to),
+                                     self.browser.list_events_theatre(date_from, date_to)))
+        items.sort(key=lambda o:o.start_date)
+        return items
 
     def get_event(self, _id):
         return self.browser.get_event(_id)
