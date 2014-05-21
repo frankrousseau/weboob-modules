@@ -72,7 +72,7 @@ class TinderBrowser(DomainBrowser):
     BASEURL = 'https://api.gotinder.com/'
     PROFILE = IPhoneClient()
 
-    recs = None
+    recs = []
 
     def __init__(self, facebook, *args, **kwargs):
         super(TinderBrowser, self).__init__(*args, **kwargs)
@@ -84,8 +84,6 @@ class TinderBrowser(DomainBrowser):
 
         self.my_id = me['user']['_id']
         self.my_name = me['user']['name']
-
-        self.update_recs()
 
     def get_threads(self):
         resp = self.request('/updates', data={'last_activity_date': '2014-05-01T06:13:16.971Z'})
