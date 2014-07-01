@@ -23,7 +23,7 @@ from setuptools import setup
 
 setup(
     name='weboob-modules',
-    version='0.h',
+    version='0.j',
     description='Weboob modules',
     long_description=open('README').read(),
     author='Romain Bignon',
