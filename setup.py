@@ -46,5 +46,5 @@ setup(
     packages=['weboob_modules'],
     include_package_data=True,
 
-    install_requires=['weboob'],
+    #install_requires=['weboob'],
 )
