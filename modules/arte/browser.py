@@ -61,18 +61,25 @@ class ArteBrowser(BaseBrowser):
         if video is None:
             video = self.create_video(result['video'])
         try:
-            video.url = u'%s' % result['video']['VSR'][0]['VUR']
-            video.ext = u'%s' % result['video']['VSR'][0]['VMT']
+            video.url = self.get_first_link_m3u8(result['video']['VSR'][0]['VUR'])
+            video.ext = u'm3u8'
         except:
             video.url, video.ext = self.get_default_url(url)
 
         return video
 
+    def get_first_link_m3u8(self, url):
+        r = self.openurl(url)
+        baseurl = url.rpartition('/')[0]
+        for line in r.readlines():
+            if not line.startswith('#'):
+                return u'%s/%s' % (baseurl, line.replace('\n', ''))
+        return NotAvailable
+
     def get_default_url(self, url):
         result = self.get_video_by_quality(url, 'ALL')
         try:
-            return u'%s' % result['video']['VSR'][0]['VUR'], \
-                   u'%s' % result['video']['VSR'][0]['VMT']
+            return self.get_first_link_m3u8(result['video']['VSR'][0]['VUR']), u'm3u8'
         except:
             return NotAvailable, NotAvailable
 
@@ -182,12 +189,13 @@ class ArteBrowser(BaseBrowser):
         video.set_empty_fields(NotAvailable, ('url',))
         if 'VDE' in item:
             video.description = u'%s' % item['VDE']
-        m = re.match('(\d{2})\s(\d{2})\s(\d{4})(.*?)', item['VDA'])
-        if m:
-            dd = int(m.group(1))
-            mm = int(m.group(2))
-            yyyy = int(m.group(3))
-            video.date = datetime.date(yyyy, mm, dd)
+        if 'VDA' in item:
+            m = re.match('(\d{2})\s(\d{2})\s(\d{4})(.*?)', item['VDA'])
+            if m:
+                dd = int(m.group(1))
+                mm = int(m.group(2))
+                yyyy = int(m.group(3))
+                video.date = datetime.date(yyyy, mm, dd)
         return video
 
     def create_url_plus7(self, class_name, method_name, level, cluster, channel, limit, offset, pattern=None):
