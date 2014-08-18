@@ -33,7 +33,9 @@ from weboob.tools.exceptions import ParseError
 __all__ = ['LoginPage', 'IndexPage', 'OperationsPage']
 
 class Transaction(FrenchTransaction):
-    PATTERNS = [(re.compile(ur'^(?P<text>.*?) - traité le \d+/\d+$'), FrenchTransaction.TYPE_CARD)]
+    PATTERNS = [(re.compile(ur'^(?P<text>Retrait .*?) - traité le \d+/\d+$'), FrenchTransaction.TYPE_WITHDRAWAL),
+                (re.compile(ur'^(?P<text>Prélèvement .*?) - traité le \d+/\d+$'), FrenchTransaction.TYPE_ORDER),
+                (re.compile(ur'^(?P<text>.*?) - traité le \d+/\d+$'), FrenchTransaction.TYPE_CARD)]
 
 
 class VirtKeyboard(MappedVirtKeyboard):
@@ -117,7 +119,7 @@ class IndexPage(LoggedPage, HTMLPage):
         return  -CleanDecimal('.')(self.doc.xpath('//div[@id = "total-sommes-dues"]/p[contains(text(), "sommes dues")]/span[@class = "montant"]')[0])
 
 class OperationsPage(LoggedPage, HTMLPage):
-    is_here = "//div[@id='releve-reserve-credit']"
+    is_here = "//div[@id='releve-reserve-credit'] | //div[@id='operations-recentes']"
 
     @pagination
     @method
