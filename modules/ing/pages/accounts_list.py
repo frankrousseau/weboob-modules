@@ -127,21 +127,18 @@ class AccountsList(LoggedPage, HTMLPage):
             obj_label = CleanText('span[@class="title"]')
             obj_id = AddPref(Field('_id'), Field('label'))
             obj_type = AddType(Field('label'))
-            obj_balance = CleanDecimal('span[@class="solde"]/label')
+            obj_balance = CleanDecimal('span[@class="solde"]/label', replace_dots=True)
             obj_coming = NotAvailable
             obj__jid = Attr('//input[@name="javax.faces.ViewState"]', 'value')
 
-    @method
-    class get_transactions(ListElement):
-        item_xpath = '//table'
-
+    class generic_transactions(ListElement):
         class item(ItemElement):
             klass = Transaction
 
             obj_id = None  # will be overwrited by the browser
             # we use lower for compatibility with the old website
             obj_raw = Transaction.Raw(Lower('.//td[@class="lbl"]'))
-            obj_amount = CleanDecimal('.//td[starts-with(@class, "amount")]')
+            obj_amount = CleanDecimal('.//td[starts-with(@class, "amount")]', replace_dots=True)
             obj_date = INGDate(CleanText('.//td[@class="date"]'), dayfirst=True)
             obj_rdate = Field('date')
             obj__hash = PreHashmd5(Field('date'), Field('raw'), Field('amount'))
@@ -150,10 +147,15 @@ class AccountsList(LoggedPage, HTMLPage):
             def condition(self):
                 if self.el.find('.//td[@class="date"]') is None:
                     return False
-                if self.page.i < self.env['index']:
-                    self.page.i += 1
-                    return False
                 return True
+
+    @method
+    class get_coming(generic_transactions):
+        item_xpath = '//div[@class="transactions cc future"]//table'
+
+    @method
+    class get_transactions(generic_transactions):
+        item_xpath = '//div[@class="temporaryTransactionList"]//table'
 
     def get_history_jid(self):
         span = self.doc.xpath('//span[@id="index:panelASV"]')
