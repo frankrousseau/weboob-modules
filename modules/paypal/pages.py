@@ -26,6 +26,7 @@ import dateutil.parser
 from weboob.tools.browser import BasePage, BrokenPageError
 from weboob.tools.parsers.csvparser import CsvParser
 from weboob.tools.misc import to_unicode
+from weboob.tools.date import parse_french_date
 from weboob.capabilities.bank import Account, Transaction
 from weboob.tools.capabilities.bank.transactions import AmericanTransaction
 
@@ -115,7 +116,12 @@ class DownloadHistoryPage(BasePage):
         tr_last_file_request = self.document.xpath('//table//table//table//tr[2]//td')[1]
         if tr_last_file_request.text is not None:
             last_file_request = tr_last_file_request.text[:-1]
-            if dateutil.parser.parse(last_file_request).date() == datetime.date.today():
+            try:
+                last_file_request = dateutil.parser.parse(last_file_request.encode('utf-8')).date()
+            except ValueError:
+                last_file_request = parse_french_date(last_file_request).date()
+
+            if last_file_request == datetime.date.today():
                 raise CSVAlreadyAsked('')
         self.browser.select_form(name='form1')
         self.browser['to_c'] = str(end.year)
@@ -178,8 +184,8 @@ class SubmitPage(BasePage):
             raise ValueError('CSV fields count of %i is not supported' % len(csv.header))
 
         for row in csv.rows:
-            # we filter accounts by currency
-            if account.get_currency(row[CURRENCY]) != account.currency:
+            # we filter accounts by currency and ignore canceled transactions
+            if account.get_currency(row[CURRENCY]) != account.currency or row[NET] == '...':
                 continue
 
             # analog to dict.get()
