@@ -32,11 +32,15 @@ from weboob.capabilities.bank import Account
 from weboob.tools.capabilities.bank.transactions import FrenchTransaction
 
 
-__all__ = ['LoginPage', 'LoginResultPage', 'AccountsPage', 'TransactionsPage', 'EmptyPage']
-
-
 class LoginPage(BasePage):
     def login(self, login, passwd):
+        try:
+            length = int(self.document.xpath('//input[@id="pass"]')[0].attrib['maxlength'])
+        except (IndexError,KeyError):
+            pass
+        else:
+            passwd = passwd[:length]
+
         self.browser.select_form(name='authen')
         try:
             self.browser['id'] = login.encode(self.browser.ENCODING)
@@ -44,6 +48,7 @@ class LoginPage(BasePage):
         except ControlNotFoundError:
             self.browser.controls.append(ClientForm.TextControl('text', 'id', {'value': login.encode(self.browser.ENCODING)}))
             self.browser.controls.append(ClientForm.TextControl('text', 'pass', {'value': passwd.encode(self.browser.ENCODING)}))
+
         self.browser.submit(nologin=True)
 
 
@@ -92,7 +97,6 @@ class LoginResultPage(BasePage):
             if tagName is not None:
                 self.browser[tagName] = [value]
             self.browser.submit()
-
 
     def confirm(self):
         self.browser.location('MainAuth?typeDemande=AC', no_login=True)

@@ -27,9 +27,6 @@ from weboob.capabilities.bank import Account
 from weboob.tools.capabilities.bank.transactions import FrenchTransaction
 
 
-__all__ = ['LoginPage', 'AccountsPage', 'TransactionsPage', 'ComingTransactionsPage']
-
-
 class LoginPage(BasePage):
     def login(self, login, password):
         self.browser.select_form(predicate=lambda form: form.attrs.get('id', '') == 'AuthForm')
@@ -103,10 +100,12 @@ class TransactionsJSONPage(BasePage):
     ROW_DEBIT =  -2
 
     def get_transactions(self):
+        seen = set()
         for tr in self.document['exportData'][1:]:
             t = Transaction(0)
             t.parse(tr[self.ROW_DATE], tr[self.ROW_TEXT])
             t.set_amount(tr[self.ROW_CREDIT], tr[self.ROW_DEBIT])
+            t.id = t.unique_id(seen)
             yield t
 
 
