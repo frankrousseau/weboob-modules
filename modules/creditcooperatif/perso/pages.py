@@ -22,12 +22,12 @@ from decimal import Decimal
 import re
 
 from weboob.tools.json import json
-from weboob.tools.browser import BasePage
+from weboob.tools.browser import Page
 from weboob.capabilities.bank import Account
 from weboob.tools.capabilities.bank.transactions import FrenchTransaction
 
 
-class LoginPage(BasePage):
+class LoginPage(Page):
     def login(self, login, password):
         self.browser.select_form(predicate=lambda form: form.attrs.get('id', '') == 'AuthForm')
         self.browser['j_username'] = login.encode('iso-8859-15')
@@ -35,7 +35,7 @@ class LoginPage(BasePage):
         self.browser.submit(nologin=True)
 
 
-class LoggedPage(BasePage):
+class LoggedPage(Page):
     def get_error(self):
         div = self.document.xpath('//div[@class="errorForm-msg"]')
         if len(div) == 0:
@@ -45,7 +45,7 @@ class LoggedPage(BasePage):
         return re.sub('[\r\n\t\xa0]+', ' ', msg)
 
 
-class AccountsPage(BasePage):
+class AccountsPage(Page):
     ACCOUNT_TYPES = {u'COMPTE NEF': Account.TYPE_CHECKING}
 
     def get_list(self):
@@ -74,7 +74,7 @@ class Transaction(FrenchTransaction):
                                                             FrenchTransaction.TYPE_CARD),
                 (re.compile('^VIR COOPA (?P<dd>\d{2})/(?P<mm>\d{2}) (?P<text>.*)'),
                                                             FrenchTransaction.TYPE_TRANSFER),
-                (re.compile('^VIR(EMENT|EMT)? (?P<text>.*?)(- .*)?$'),
+                (re.compile('^VIR(EMENT|EMT| SEPA EMET :)? (?P<text>.*?)(- .*)?$'),
                                                             FrenchTransaction.TYPE_TRANSFER),
                 (re.compile('^(PRLV|PRELEVEMENT) (?P<text>.*?)(- .*)?$'),
                                                             FrenchTransaction.TYPE_ORDER),
@@ -89,11 +89,11 @@ class Transaction(FrenchTransaction):
                ]
 
 
-class TransactionsPage(BasePage):
+class TransactionsPage(Page):
     pass
 
 
-class TransactionsJSONPage(BasePage):
+class TransactionsJSONPage(Page):
     ROW_DATE =    0
     ROW_TEXT =    2
     ROW_CREDIT = -1
@@ -109,7 +109,7 @@ class TransactionsJSONPage(BasePage):
             yield t
 
 
-class ComingTransactionsPage(BasePage):
+class ComingTransactionsPage(Page):
     ROW_REF =     0
     ROW_TEXT =    1
     ROW_DATE =    2
