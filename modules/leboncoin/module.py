@@ -18,9 +18,9 @@
 # along with weboob. If not, see <http://www.gnu.org/licenses/>.
 
 
-from weboob.tools.backend import Module
+from weboob.tools.backend import Module, BackendConfig
 from weboob.capabilities.housing import CapHousing, Query, Housing, HousingPhoto
-
+from weboob.tools.value import Value
 from .browser import LeboncoinBrowser
 
 
@@ -35,7 +35,10 @@ class LeboncoinModule(Module, CapHousing):
     LICENSE = 'AGPLv3+'
     VERSION = '1.0'
 
-    MODULE = LeboncoinBrowser
+    BROWSER = LeboncoinBrowser
+
+    CONFIG = BackendConfig(Value('advert_type', label='Advert type',
+                                 choices={'c': 'Agency', 'p': 'Owner', 'a': 'All'}, default='a'))
 
     RET = {Query.HOUSE_TYPES.HOUSE: '1',
            Query.HOUSE_TYPES.APART: '2',
@@ -73,7 +76,10 @@ class LeboncoinModule(Module, CapHousing):
         if len(ret) == 0:
             return list()
 
-        _type = query.TYPE_RENT if query.type is None else query.type
+        _type = 'ventes_immobilieres'
+        if query.type == Query.TYPE_RENT:
+            _type = 'locations'
+
         nb_rooms = '' if not query.nb_rooms else query.nb_rooms
         area_min = '' if not query.area_min else query.area_min
         area_max = '' if not query.area_max else query.area_max
@@ -82,6 +88,7 @@ class LeboncoinModule(Module, CapHousing):
 
         return self.browser.search_housings(_type, ','.join(cities), nb_rooms,
                                             area_min, area_max,
-                                            cost_min, cost_max, '&ret='.join(ret))
+                                            cost_min, cost_max, '&ret='.join(ret),
+                                            self.config['advert_type'].get())
 
     OBJECTS = {Housing: fill_housing, HousingPhoto: fill_photo}
