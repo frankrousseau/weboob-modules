@@ -17,7 +17,7 @@
 # You should have received a copy of the GNU Affero General Public License
 # along with weboob. If not, see <http://www.gnu.org/licenses/>.
 
-from weboob.tools.browser2 import PagesBrowser, URL
+from weboob.browser2 import PagesBrowser, URL
 
 from .pages import CityListPage, HousingListPage, HousingPage
 
@@ -51,5 +51,5 @@ class LeboncoinBrowser(PagesBrowser):
                               advert_type=advert_type,
                               ret=ret).get_housing_list()
 
-    def get_housing(self, _id):
-        return self.housing.go(_id=_id).get_housing()
+    def get_housing(self, _id, obj=None):
+        return self.housing.go(_id=_id).get_housing(obj=obj)
