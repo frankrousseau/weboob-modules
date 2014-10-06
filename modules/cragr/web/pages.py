@@ -217,8 +217,8 @@ class CardsPage(Page):
             try:
                 t.id = t.unique_id(seen)
             except UnicodeEncodeError:
-                print t
-                print t.label
+                self.logger.debug(t)
+                self.logger.debug(t.label)
                 raise
 
             yield t

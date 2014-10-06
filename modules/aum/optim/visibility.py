@@ -44,6 +44,5 @@ class Visibility(Optimization):
         try:
             with self.browser:
                 self.browser.login()
-        except BrowserUnavailable as e:
-            print str(e)
+        except BrowserUnavailable:
             pass

@@ -73,7 +73,6 @@ class VideoPage(Page):
         obj = self.parser.select(self.document.getroot(), 'meta[name=available]', 1)
         if obj is not None:
             value = obj.attrib['content']
-            print value
             m = re.match('(\d\d)-(\d\d)-(\d\d\d\d)\s*(\d\d):(\d\d)', value)
             if not m:
                 raise BrokenPageError('Unable to parse datetime: %r' % value)
