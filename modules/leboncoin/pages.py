@@ -19,7 +19,7 @@
 from decimal import Decimal
 from weboob.browser.pages import HTMLPage, pagination
 from weboob.browser.elements import ItemElement, ListElement, method
-from weboob.browser.filters.standard import CleanText, Regexp, CleanDecimal, Env, DateTime
+from weboob.browser.filters.standard import CleanText, Regexp, CleanDecimal, Env, DateTime, BrowserURL
 from weboob.browser.filters.html import Attr, Link
 from weboob.capabilities.housing import City, Housing, HousingPhoto
 from datetime import date, timedelta
@@ -46,7 +46,7 @@ class HousingListPage(HTMLPage):
         return self.find_select_value(asked_area, '//select[@id="sqe"]/option')
 
     def get_rooms_min(self, asked_rooms):
-        return self.find_select_value(asked_rooms, '//select[@id="ros"]/option')
+        return self.find_select_value(asked_rooms, '//select[@id="rooms_ros"]/option')
 
     # def get_rooms_max(self, asked_rooms):
     #     return self.find_select_value(asked_rooms, '//select[@id="roe"]/option')
@@ -77,7 +77,7 @@ class HousingListPage(HTMLPage):
         item_xpath = '//div[@class="list-lbc"]/a'
 
         def next_page(self):
-            return Link('//li[@class="page"]/a')(self)
+            return Link('//li[@class="page"]/a[contains(text(),"Page suivante")]')(self)
 
         class item(ItemElement):
             klass = Housing
@@ -145,6 +145,7 @@ class HousingPage(HTMLPage):
         obj_location = Env('location')
         obj_details = Env('details')
         obj_area = Env('area')
+        obj_url = BrowserURL('housing', _id=Env('_id'))
 
         def obj_date(self):
             _date = Regexp(CleanText('//div[@class="upload_by"]', replace=[(u'à', '')]),
