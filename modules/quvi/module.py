@@ -74,6 +74,7 @@ class QuviModule(Module, CapVideo):
             video.thumbnail.url = video.thumbnail.id
         return video
 
+
 class QuviVideo(BaseVideo):
     BACKENDS = {
         'youtube': 'https://www.youtube.com/watch?v=%s',
@@ -103,7 +104,7 @@ class QuviVideo(BaseVideo):
         if _id.startswith('http'):
             return _id
 
-        if not '.' in _id:
+        if '.' not in _id:
             raise UserError('Please give an ID in form WEBSITE.ID (for example youtube.BaW_jenozKc). Supported websites are: %s' % ', '.join(cls.BACKENDS.keys()))
 
         sub_backend, sub_id = _id.split('.', 1)

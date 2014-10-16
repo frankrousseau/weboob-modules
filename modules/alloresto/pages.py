@@ -30,7 +30,7 @@ from weboob.tools.capabilities.bank.transactions import FrenchTransaction as Tra
 
 class LoginPage(HTMLPage):
     def login(self, username, password):
-        form = self.get_form(nr=1)
+        form = self.get_form(xpath='//form[has-class("form_o")]')
         form['uname'] = username
         form['pass'] = password
         form.submit()
@@ -52,6 +52,7 @@ class AccountsPage(LoggedPage, HTMLPage):
 
     class MyDate(Filter):
         MONTHS = ['janv', u'févr', u'mars', u'avr', u'mai', u'juin', u'juil', u'août', u'sept', u'oct', u'nov', u'déc']
+
         def filter(self, txt):
             day, month, year = txt.split(' ')
             day = int(day)

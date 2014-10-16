@@ -30,7 +30,6 @@ from urllib import quote_plus
 __all__ = ['GithubBrowser']
 
 
-
 class GithubBrowser(Browser):
     PROTOCOL = 'https'
     DOMAIN = 'api.github.com'
@@ -198,6 +197,7 @@ class GithubBrowser(Browser):
 
 # TODO use a cache for objects and/or pages?
 # TODO use an api-key?
+
 
 def parse_date(s):
     if s.endswith('Z'):

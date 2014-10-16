@@ -26,10 +26,12 @@ from weboob.tools.backend import Module, BackendConfig
 from .browser import NolifeTVBrowser
 from .video import NolifeTVVideo
 
-import urllib, time
+import urllib
+import time
 from hashlib import md5
 
 __all__ = ['NolifeTVModule']
+
 
 class NolifeTVModule(Module, CapVideo, CapCollection):
     NAME = 'nolifetv'
@@ -126,6 +128,6 @@ class NolifeTVModule(Module, CapVideo, CapCollection):
                                     'quality=%s&a=UEM%%7CSEM%%7CMEM%%7CCH%%7CSWQ&skey=%s&id%%5Fnlshow=%s&timestamp=%s' % (quality, skey, id, timestamp))
         values = dict([urllib.splitvalue(s) for s in data.split('&')])
 
-        if not 'url' in values:
+        if 'url' not in values:
             return None
         return unicode(values['url'])

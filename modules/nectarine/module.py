@@ -23,6 +23,7 @@ from .browser import NectarineBrowser
 
 __all__ = ['NectarineModule']
 
+
 class NectarineModule(Module, CapRadio, CapCollection):
     NAME = 'nectarine'
     MAINTAINER = u'Thomas Lecavelier'
@@ -52,9 +53,9 @@ class NectarineModule(Module, CapRadio, CapCollection):
 
     def get_radio(self, radio):
         if not isinstance(radio, Radio):
-           for rad in self.browser.iter_radios_list():
-               if rad.id == radio:
-                  return rad
+            for rad in self.browser.iter_radios_list():
+                if rad.id == radio:
+                    return rad
         return None
 
     def fill_radio(self, radio, fields):

@@ -29,7 +29,7 @@ from weboob.tools.compat import basestring
 from weboob.browser.browsers import LoginBrowser, need_login
 from weboob.browser.profiles import Wget
 from weboob.browser.url import URL
-from weboob.exceptions import  BrowserIncorrectPassword
+from weboob.exceptions import BrowserIncorrectPassword
 from weboob.capabilities.bank import Transfer, TransferError
 
 from .pages import LoginPage, LoginErrorPage, AccountsPage, UserSpacePage, \
@@ -65,7 +65,6 @@ class CreditMutuelBrowser(LoginBrowser):
                       EmptyPage)
 
     currentSubBank = None
-
 
     def do_login(self):
         self.login.stay_or_go()
@@ -177,7 +176,7 @@ class CreditMutuelBrowser(LoginBrowser):
         # look for the known "everything went well" message
         content = page.response.text
         transfer_ok_message = u'Votre virement a été exécuté ce jour'
-        if not transfer_ok_message in content:
+        if transfer_ok_message not in content:
             raise TransferError('The expected message "%s" was not found.' % transfer_ok_message)
 
         # We now have to return a Transfer object

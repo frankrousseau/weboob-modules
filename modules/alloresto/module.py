@@ -18,7 +18,6 @@
 # along with weboob. If not, see <http://www.gnu.org/licenses/>.
 
 
-
 from weboob.capabilities.bank import CapBank, AccountNotFound
 from weboob.tools.backend import Module, BackendConfig
 from weboob.tools.value import ValueBackendPassword
@@ -60,4 +59,3 @@ class AlloRestoModule(Module, CapBank):
 
     def iter_coming(self, account):
         return self.browser.get_coming(account)
-

@@ -32,7 +32,6 @@ from datetime import date
 from StringIO import StringIO
 
 
-
 __all__ = ['CmbModule']
 
 
@@ -99,8 +98,8 @@ class CmbModule(Module, CapBank):
         response = self.browser.open("https://www.cmb.fr/domiweb/servlet/Identification", allow_redirects=False, data=data)
 
         if response.status_code == 302:
-          self.islogged=True
-          return True
+            self.islogged=True
+            return True
         else:
             raise BrowserIncorrectPassword()
         return False

@@ -23,6 +23,7 @@ from .browser import NihonNoOtoBrowser
 
 __all__ = ['NihonNoOtoModule']
 
+
 class NihonNoOtoModule(Module, CapRadio, CapCollection):
     NAME = 'nihonnooto'
     MAINTAINER = u'Thomas Lecavelier'
@@ -53,9 +54,9 @@ class NihonNoOtoModule(Module, CapRadio, CapCollection):
 
     def get_radio(self, radio):
         if not isinstance(radio, Radio):
-           for rad in self.browser.iter_radios_list():
-               if rad.id == radio:
-                  return rad
+            for rad in self.browser.iter_radios_list():
+                if rad.id == radio:
+                    return rad
         return None
 
     def fill_radio(self, radio, fields):

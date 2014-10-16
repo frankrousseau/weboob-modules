@@ -18,7 +18,6 @@
 # along with weboob. If not, see <http://www.gnu.org/licenses/>.
 
 
-
 from weboob.capabilities.bank import CapBank, AccountNotFound
 from weboob.tools.backend import Module, BackendConfig
 from weboob.tools.value import ValueBackendPassword
@@ -63,4 +62,3 @@ class AmericanExpressModule(Module, CapBank):
             transactions = list(self.browser.get_history(account))
             transactions.sort(key=lambda tr: tr.rdate, reverse=True)
             return transactions
-

@@ -26,7 +26,8 @@ import re
 import urllib
 import urllib2
 
-from weboob.deprecated.browser import Browser, BrowserIncorrectPassword, BrowserHTTPNotFound, BrowserUnavailable
+from weboob.exceptions import BrowserIncorrectPassword, BrowserHTTPNotFound, BrowserUnavailable
+from weboob.deprecated.browser import Browser
 from weboob.browser.browsers import LoginBrowser
 from weboob.browser.pages import HTMLPage
 from weboob.browser.filters.standard import CleanText
@@ -126,6 +127,7 @@ class WebsiteBrowser(LoginBrowser):
                 profile['lng'] = float(m.group(1))
 
         return profile
+
 
 class AuMBrowser(Browser):
     DOMAIN = 'www.adopteunmec.com'

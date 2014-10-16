@@ -18,12 +18,10 @@
 # along with weboob. If not, see <http://www.gnu.org/licenses/>.
 
 import hashlib
-from weboob.tools.log import getLogger
 
-try:
-    from PIL import Image
-except ImportError:
-    raise ImportError('Please install python-imaging')
+from PIL import Image
+
+from weboob.tools.log import getLogger
 
 
 class TileError(Exception):
@@ -44,7 +42,8 @@ class Captcha(object):
 
         self.tiles = [[Tile(y * self.nbc + x) for y in xrange(4)] for x in xrange(4)]
 
-    def __getitem__(self, (x, y)):
+    def __getitem__(self, coords):
+        x, y = coords
         return self.inmat[x % self.nx, y % self.ny]
 
     def all_coords(self):
