@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 
-# Copyright(C) 2012 Lucien Loiseau
+# Copyright(C) 2014      Bezleputh
 #
 # This file is part of weboob.
 #
@@ -18,22 +18,7 @@
 # along with weboob. If not, see <http://www.gnu.org/licenses/>.
 
 
-from weboob.browser import PagesBrowser, URL
-from .pages import TranslatePage
+from .module import ExplorimmoModule
 
 
-__all__ = ['WordReferenceBrowser']
-
-
-class WordReferenceBrowser(PagesBrowser):
-    BASEURL = 'http://www.wordreference.com'
-    translation_page = URL('(?P<sl>[a-z]{2})(?P<tl>[a-z]{2})/(?P<pattern>.*)', TranslatePage)
-
-    def translate(self, source, to, text):
-        """
-        translate 'text' from 'source' language to 'to' language
-        """
-
-        return self.translation_page.go(sl=source.encode('utf-8'),
-                                        tl=to.encode('utf-8'),
-                                        pattern=text.encode('utf-8')).get_translation()
+__all__ = ['ExplorimmoModule']
