@@ -17,22 +17,26 @@
 # You should have received a copy of the GNU Affero General Public License
 # along with weboob. If not, see <http://www.gnu.org/licenses/>.
 
-
+from weboob.capabilities.housing import Query
 from weboob.tools.test import BackendTest
-import itertools
 
 
-class RegionsjobTest(BackendTest):
-    MODULE = 'regionsjob'
+class LogicimmoTest(BackendTest):
+    MODULE = 'logicimmo'
 
-    def test_regionjob_search(self):
-        l = list(itertools.islice(self.backend.search_job(u'informaticien'), 0, 20))
-        assert len(l)
-        advert = self.backend.get_job_advert(l[0].id, None)
-        self.assertTrue(advert.url, 'URL for announce "%s" not found: %s' % (advert.id, advert.url))
+    def test_logicimmo(self):
+        query = Query()
+        query.area_min = 20
+        query.cost_max = 900
+        query.cities = []
+        for city in self.backend.search_city('paris'):
+            if len(query.cities) >= 3:
+                break
 
-    def test_regionjob_advanced_search(self):
-        l = list(itertools.islice(self.backend.advanced_search_job(), 0, 20))
-        assert len(l)
-        advert = self.backend.get_job_advert(l[0].id, None)
-        self.assertTrue(advert.url, 'URL for announce "%s" not found: %s' % (advert.id, advert.url))
+            city.backend = self.backend.name
+            query.cities.append(city)
+
+        results = list(self.backend.search_housings(query))
+
+        self.assertTrue(len(results) > 0)
+        self.backend.fillobj(results[0], 'phone')

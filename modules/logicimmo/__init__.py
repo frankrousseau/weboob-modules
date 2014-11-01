@@ -18,21 +18,7 @@
 # along with weboob. If not, see <http://www.gnu.org/licenses/>.
 
 
-from weboob.tools.test import BackendTest
-import itertools
+from .module import LogicimmoModule
 
 
-class RegionsjobTest(BackendTest):
-    MODULE = 'regionsjob'
-
-    def test_regionjob_search(self):
-        l = list(itertools.islice(self.backend.search_job(u'informaticien'), 0, 20))
-        assert len(l)
-        advert = self.backend.get_job_advert(l[0].id, None)
-        self.assertTrue(advert.url, 'URL for announce "%s" not found: %s' % (advert.id, advert.url))
-
-    def test_regionjob_advanced_search(self):
-        l = list(itertools.islice(self.backend.advanced_search_job(), 0, 20))
-        assert len(l)
-        advert = self.backend.get_job_advert(l[0].id, None)
-        self.assertTrue(advert.url, 'URL for announce "%s" not found: %s' % (advert.id, advert.url))
+__all__ = ['LogicimmoModule']
