@@ -21,19 +21,16 @@
 import datetime
 from decimal import Decimal
 
-from weboob.tools.browser2.page import HTMLPage, LoggedPage, method
-from weboob.tools.browser2.elements import ItemElement
-from weboob.tools.browser2.filters import CleanDecimal, CleanText, Filter, TableCell
+from weboob.browser.pages import HTMLPage, LoggedPage
+from weboob.browser.elements import ItemElement, method
+from weboob.browser.filters.standard import CleanDecimal, CleanText, Filter, TableCell
 from weboob.capabilities.bank import Account
 from weboob.tools.capabilities.bank.transactions import FrenchTransaction as Transaction
 
 
-__all__ = ['LoginPage', 'AccountsPage']
-
-
 class LoginPage(HTMLPage):
     def login(self, username, password):
-        form = self.get_form(nr=1)
+        form = self.get_form(xpath='//form[has-class("form_o")]')
         form['uname'] = username
         form['pass'] = password
         form.submit()
@@ -49,12 +46,13 @@ class AccountsPage(LoggedPage, HTMLPage):
 
         obj_id = '0'
         obj_label = u'Compte miams'
-        obj_balance = CleanDecimal('//div[@class="compteur"]//strong')
+        obj_balance = CleanDecimal('//div[@class="compteur"]//strong', replace_dots=True)
         obj_currency = u'MIAM'
-        obj_coming = CleanDecimal('//table[@id="solde_acquisition_lignes"]//th[@class="col_montant"]', default=Decimal('0'))
+        obj_coming = CleanDecimal('//table[@id="solde_acquisition_lignes"]//th[@class="col_montant"]', default=Decimal('0'), replace_dots=True)
 
     class MyDate(Filter):
         MONTHS = ['janv', u'févr', u'mars', u'avr', u'mai', u'juin', u'juil', u'août', u'sept', u'oct', u'nov', u'déc']
+
         def filter(self, txt):
             day, month, year = txt.split(' ')
             day = int(day)

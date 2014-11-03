@@ -18,12 +18,11 @@
 # along with weboob. If not, see <http://www.gnu.org/licenses/>.
 
 from weboob.capabilities.bank import Recipient, AccountNotFound, Transfer
-from weboob.tools.browser2.page import HTMLPage, LoggedPage, method
-from weboob.tools.browser2.elements import ListElement, ItemElement
-from weboob.tools.browser2.filters import CleanText, CleanDecimal, Attr, Format
+from weboob.browser.pages import HTMLPage, LoggedPage
+from weboob.browser.elements import ListElement, ItemElement, method
+from weboob.browser.filters.standard import CleanText, CleanDecimal, Format
+from weboob.browser.filters.html import Attr
 from .login import INGVirtKeyboard
-
-__all__ = ['TransferPage']
 
 
 class TransferPage(LoggedPage, HTMLPage):
@@ -123,7 +122,7 @@ class TransferPage(LoggedPage, HTMLPage):
             return request
 
 
-class TransferConfirmPage(HTMLPage):
+class TransferConfirmPage(LoggedPage, HTMLPage):
     def confirm(self, password):
         vk = INGVirtKeyboard(self)
 
@@ -134,7 +133,7 @@ class TransferConfirmPage(HTMLPage):
 
         form['AJAXREQUEST'] = '_viewRoot'
         form['%s:mrgtransfer' % form.name] = '%s:mrgtransfer' % form.name
-        form['%s:mrltransfer' % form.name] = vk.get_coordinates('//span[@id="digitpadtransfer"]', password)
+        form['%s:mrltransfer' % form.name] = vk.get_coordinates(password)
         form.submit()
 
     @method
@@ -144,7 +143,7 @@ class TransferConfirmPage(HTMLPage):
         class item(ItemElement):
             klass = Transfer
 
-            obj_amount = CleanDecimal('.//label[@id="confirmtransferAmount"]')
+            obj_amount = CleanDecimal('.//label[@id="confirmtransferAmount"]', replace_dots=True)
             obj_origin = CleanText('.//span[@id="confirmfromAccount"]')
             obj_recipient = CleanText('.//span[@id="confirmtoAccount"]')
             obj_reason = CleanText('.//span[@id="confirmtransferMotive"]')
