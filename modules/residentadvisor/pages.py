@@ -77,7 +77,7 @@ class EventPage(BasePage):
         obj_description = CleanHTML('//div[@id="event-item"]/div[3]/p[2]')
         obj_price = CleanDecimal(Regexp(CleanText('//aside[@id="detail"]/ul/li[3]'), r'Cost / [^\d]+([\d ,.]+).', default=''), default=None)
         obj_location = Regexp(CleanText('//aside[@id="detail"]/ul/li[2]'), r'Venue / (.+)')
-        obj_booked_entries = Type(CleanText('//h1[@id="MembersFavouriteCount"]'), type=float)
+        obj_booked_entries = Type(CleanText('//h1[@id="MembersFavouriteCount"]'), type=int)
         obj_status = STATUS.CONFIRMED
         obj_category = CATEGORIES.CONCERT
 
@@ -109,4 +109,5 @@ class SearchPage(BasePage):
             obj_id = Regexp(Link('./a[1]'), r'\?(\d+)')
             obj_summary = CleanText('./a[1]')
             obj_start_date = Date(CleanText('./span[1]'))
-            obj_booked_entries = Type(CleanText('.//p[@class="attending"]/span'), type=float)
+            obj_category = CATEGORIES.CONCERT
+            obj_status = STATUS.CONFIRMED
