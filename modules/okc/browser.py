@@ -20,6 +20,7 @@
 import urllib
 
 from weboob.deprecated.browser import Browser, Page
+from weboob.exceptions import BrowserIncorrectPassword
 from weboob.tools.ordereddict import OrderedDict
 
 from .pages import LoginPage, ThreadPage, MessagesPage, PostMessagePage, ProfilePage, PhotosPage, VisitsPage, QuickMatchPage, SentPage
@@ -46,6 +47,7 @@ class OkCBrowser(Browser):
     PAGES = OrderedDict((
             ('https://%s/login.*' % DOMAIN, LoginPage),
             ('http://%s/home' % DOMAIN, Page),
+            ('http://%s/match.*' % DOMAIN, Page),
             ('http://%s/messages' % DOMAIN, ThreadPage),
             ('http://%s/messages\?compose=1' % DOMAIN, PostMessagePage),
             ('http://\w+.okcupid.com/messages\?.*', MessagesPage),
@@ -64,6 +66,10 @@ class OkCBrowser(Browser):
     def login(self):
         self.location(self.absurl('/login'), no_login=True)
         self.page.login(self.username, self.password)
+
+        if self.is_on_page(LoginPage):
+            raise BrowserIncorrectPassword()
+
         self.logged_in = True
 
     def is_logged(self):
